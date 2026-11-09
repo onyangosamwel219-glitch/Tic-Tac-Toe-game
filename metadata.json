@@ -1,0 +1,6 @@
+{
+  "name": "Chronos Tic-Tac-Toe",
+  "description": "Turn-based multiplayer and AI Tic-Tac-Toe powered by Firebase with Google Sign-In, instant share codes, minimax algorithm, and event-sourced time-travel rollback.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,79 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile and statistics",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 256 },
+        "displayName": { "type": "string", "maxLength": 100 },
+        "photoURL": { "type": "string", "maxLength": 1000 },
+        "gamesPlayed": { "type": "number" },
+        "gamesWon": { "type": "number" },
+        "gamesLost": { "type": "number" },
+        "gamesTied": { "type": "number" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["uid", "displayName"]
+    },
+    "Game": {
+      "title": "Game",
+      "description": "Tic-Tac-Toe game session match",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "shortCode": { "type": "string", "maxLength": 10 },
+        "mode": { "type": "string", "enum": ["ai", "pvp"] },
+        "aiDifficulty": { "type": "string", "enum": ["easy", "medium", "hard"] },
+        "status": { "type": "string", "enum": ["waiting", "in_progress", "completed", "abandoned"] },
+        "playerXId": { "type": "string", "maxLength": 128 },
+        "playerXName": { "type": "string", "maxLength": 100 },
+        "playerXPhoto": { "type": "string", "maxLength": 1000 },
+        "playerOId": { "type": "string", "maxLength": 128 },
+        "playerOName": { "type": "string", "maxLength": 100 },
+        "playerOPhoto": { "type": "string", "maxLength": 1000 },
+        "playerOIsAi": { "type": "boolean" },
+        "currentTurn": { "type": "string", "enum": ["X", "O"] },
+        "winner": { "type": "string", "enum": ["X", "O", "draw", "none"] },
+        "turnCount": { "type": "number" },
+        "createdBy": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "shortCode", "mode", "status", "playerXId", "playerXName", "currentTurn", "createdBy"]
+    },
+    "GameEvent": {
+      "title": "GameEvent",
+      "description": "Event sourcing document for each turn or state transition in the game",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "gameId": { "type": "string", "maxLength": 128 },
+        "type": { "type": "string", "enum": ["MOVE", "ROLLBACK"] },
+        "turnIndex": { "type": "number" },
+        "player": { "type": "string", "enum": ["X", "O"] },
+        "playerId": { "type": "string", "maxLength": 128 },
+        "position": { "type": "number" },
+        "targetTurnIndex": { "type": "number" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "gameId", "type", "turnIndex", "player", "playerId"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User profiles and public statistics"
+    },
+    "/games/{gameId}": {
+      "schema": { "$ref": "#/entities/Game" },
+      "description": "Game match session documents"
+    },
+    "/games/{gameId}/events/{eventId}": {
+      "schema": { "$ref": "#/entities/GameEvent" },
+      "description": "Event-sourced subcollection storing each move and turn state change"
+    }
+  }
+}

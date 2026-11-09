@@ -1,0 +1,75 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Test connection doc
+    match /test/connection {
+      allow read: if true;
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create, update: if isSignedIn() && request.auth.uid == userId && isValidId(userId);
+    }
+
+    // Games collection
+    match /games/{gameId} {
+      allow get: if isSignedIn() && isValidId(gameId);
+      allow list: if isSignedIn();
+      
+      allow create: if isSignedIn() 
+        && isValidId(gameId)
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.playerXId == request.auth.uid;
+
+      allow update: if isSignedIn() && isValidId(gameId) && (
+        // Action: Join game
+        (
+          resource.data.status == 'waiting' &&
+          request.resource.data.playerOId == request.auth.uid
+        )
+        ||
+        // Action: Gameplay update / Rollback by participants
+        (
+          request.auth.uid == resource.data.playerXId ||
+          request.auth.uid == resource.data.playerOId ||
+          request.auth.uid == resource.data.createdBy
+        )
+      );
+
+      // Subcollection: Game events (event sourcing)
+      match /events/{eventId} {
+        allow get, list: if isSignedIn() && isValidId(gameId);
+        
+        allow create: if isSignedIn() && isValidId(gameId) && isValidId(eventId) && (
+          request.auth.uid == get(/databases/$(database)/documents/games/$(gameId)).data.playerXId ||
+          request.auth.uid == get(/databases/$(database)/documents/games/$(gameId)).data.playerOId ||
+          request.auth.uid == get(/databases/$(database)/documents/games/$(gameId)).data.createdBy
+        );
+
+        // Allow deleting events during rollback to restore prior turn
+        allow delete: if isSignedIn() && isValidId(gameId) && (
+          request.auth.uid == get(/databases/$(database)/documents/games/$(gameId)).data.playerXId ||
+          request.auth.uid == get(/databases/$(database)/documents/games/$(gameId)).data.playerOId ||
+          request.auth.uid == get(/databases/$(database)/documents/games/$(gameId)).data.createdBy
+        );
+      }
+    }
+  }
+}
